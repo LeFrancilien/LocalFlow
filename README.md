@@ -60,7 +60,15 @@ cd C:\Users\user\iCloudDrive\oakflow-wiki\projects\LocalFlow
 ```
 
 Affiche les logs ([RECORDING], [PROCESSING], [SUCCESS], [ERROR]) dans la
-console. C'est le réflexe si F9 semble mort : le mode silencieux n'a pas de logs.
+console.
+
+## Fichier de log
+
+Toute l'activité (y compris en mode silencieux) est écrite dans
+`localflow.log` à la racine du projet : démarrage, dictées, textes injectés,
+erreurs avec stacktrace. Rotation automatique à 1 Mo (1 fichier de backup
+`localflow.log.1`). C'est le premier réflexe si F9 semble mort ou si une
+dictée échoue sans explication.
 
 ## Décisions techniques (le pourquoi)
 
@@ -88,7 +96,7 @@ console. C'est le réflexe si F9 semble mort : le mode silencieux n'a pas de log
 
 | Symptôme | Cause probable | Solution |
 |---|---|---|
-| F9 ne fait rien | Appli pas lancée | Vérifier `pythonw.exe` au Gestionnaire des tâches ; sinon lancement manuel |
+| F9 ne fait rien | Appli pas lancée | Consulter `localflow.log` ; vérifier `pythonw.exe` au Gestionnaire des tâches |
 | Erreur au traitement (bulle rouge) | Ollama pas démarré | Vérifier qu'Ollama tourne (`ollama list`) |
 | Texte bizarre / méta-commentaires | Régression prompt | Voir "Décisions techniques" ; tester `refine()` directement |
 | Rien ne s'insère mais flash vert | Curseur pas dans un champ texte | Cliquer dans un champ avant F9 |

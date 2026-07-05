@@ -10,3 +10,6 @@ __pycache__/
 
 # Fichiers audio temporaires
 *.wav
+
+# Logs
+*.log
