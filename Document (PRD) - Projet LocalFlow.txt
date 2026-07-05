@@ -1,0 +1,205 @@
+Document (PRD) - Projet "LocalFlow"
+## Clone Local et Personnel de Wispr Flow
+
+Ce document définit les spécifications fonctionnelles et techniques pour la création de **LocalFlow**, un assistant de dictée vocale intelligent, ultra-rapide et s'exécutant localement en arrière-plan sur un PC. Ce document est optimisé pour être directement interprété et exécuté par **Claude Code** dans l'environnement **Visual Studio Code (VS Code)**.
+
+---
+
+## 1. Vision & Objectifs du Projet
+
+### 1.1 Contexte
+Wispr Flow est une application d'intelligence artificielle permettant de dicter du texte n'importe où sur son système d'exploitation, avec une correction intelligente (suppression des tics de langage, structuration, réécriture fluide). L'objectif est de recréer une version open-source, personnelle, gratuite (ou à très faible coût) et entièrement configurable qui tourne en arrière-plan sur Windows, macOS ou Linux.
+
+### 1.2 Objectifs Clés
+- **Accessibilité globale :** Déclencher l'enregistrement de n'importe où dans le système (navigateur, IDE, messagerie, traitement de texte) via un raccourci clavier global.
+- **Vitesse & Fluidité :** Minimiser le temps de latence entre la fin de la parole et l'injection du texte.
+- **Intelligence Contextuelle :** Utiliser des LLM pour nettoyer le texte brut issu de la transcription, corriger la grammaire, ajouter la ponctuation et appliquer des instructions de formatage dictées par l'utilisateur.
+- **Hybride Cloud/Local :** Permettre l'utilisation d'API performantes (OpenAI, Anthropic) ou de modèles 100% locaux (Whisper local, Ollama) pour garantir la confidentialité et la gratuité.
+
+---
+
+## 2. Architecture Technique & Stack
+
+Le projet sera entièrement développé en **Python 3.10+**, réputé pour sa flexibilité en traitement audio, script système et intégration d'IA.
+
+### 2.2 Dépendances principales (requirements.txt)
+- `pynput` : Écoute globale du clavier (raccourcis système hors-fenêtre).
+- `sounddevice` & `scipy` : Capture du flux audio du microphone par défaut et écriture en fichier WAV.
+- `pyperclip` : Manipulation sûre et multiplateforme du presse-papiers.
+- `python-dotenv` : Gestion sécurisée des clés d'API et des variables de configuration.
+- `openai` / `anthropic` : Clients officiels pour les pipelines d'IA dans le cloud.
+- `requests` ou `httpx` : Pour interagir avec l'API locale d'Ollama.
+
+---
+
+## 3. Structure des Fichiers du Projet
+
+Le projet devra respecter scrupuleusement la structure modulaire suivante pour faciliter la maintenance par Claude Code :
+
+
+```
+
+```text
+File PRD_LocalFlow.md written successfully.
+
+```text
+localflow/
+│
+├── .env                      # Configuration locale, clés API et choix des modèles
+├── requirements.txt          # Liste complète des dépendances Python
+├── config.py                 # Chargement et validation des variables d'environnement
+├── main.py                   # Point d'entrée de l'application (Boucle principale)
+│
+├── audio_recorder.py         # Capture du microphone et enregistrement du fichier audio temporaire
+├── ai_pipeline.py            # Routage et appels aux API STT (Transcription) et LLM (Correction)
+├── text_injector.py          # Logique de sauvegarde, modification et injection via le presse-papiers
+└── ui_overlay.py             # Interface graphique minimaliste d'état (Tkinter)
+
+```
+
+---
+
+## 4. Spécifications Fonctionnelles Détaillées
+
+### F1 : Gestion des Raccourcis Clavier Globaux (`main.py`)
+
+* L'application doit tourner de manière asynchrone en tâche de fond.
+* **Comportement par défaut :** Un appui sur le raccourci (ex: `Ctrl + Shift + E`) active l'enregistrement. Un second appui arrête l'enregistrement et lance le pipeline.
+* *Option alternative (Maintien de touche) :* Maintenir la touche enfoncée pour enregistrer, relâcher la touche pour traiter (à rendre configurable si possible).
+
+### F2 : Capture Audio Local (`audio_recorder.py`)
+
+* Sélectionner automatiquement le microphone principal configuré par le système.
+* Enregistrer le flux audio au format `.wav` (recommandé : 16000 Hz, Mono, 16-bit PCM pour une compatibilité maximale avec Whisper).
+* Stocker le fichier dans un répertoire temporaire du projet (ex: `temp_speech.wav`).
+* Assurer la suppression ou la réécriture propre du fichier après traitement pour éviter l'accumulation de données sur le disque.
+
+### F3 : Le Pipeline IA - Transcription et Raffinement (`ai_pipeline.py`)
+
+Le traitement s'effectue en deux étapes distinctes :
+
+#### Étape 3.1 : Speech-To-Text (STT)
+
+* **Mode Cloud (Par défaut) :** Utilisation de l'API OpenAI Whisper (`whisper-1`). Fast, précis et très économique.
+* **Mode Local :** Possibilité future d'intégrer `faster-whisper` ou `whisper.cpp` (laisser la structure ouverte à cette option via le fichier de configuration).
+
+#### Étape 3.2 : Large Language Model (LLM) pour la réécriture
+
+Le texte brut transcrit est envoyé au LLM configuré (`gpt-4o-mini`, `claude-3-5-sonnet` ou `Ollama/llama3`) accompagné d'un **Prompt Système** strict :
+
+> **Prompt Système :**
+> "Tu es le moteur de réécriture et d'optimisation textuelle de LocalFlow. Ton rôle unique est de nettoyer la dictée vocale brute de l'utilisateur.
+> 1. Supprime toutes les hésitations, répétitions, bégaiements et tics de langage (ex: 'euh', 'du coup', 'en fait', 'voilà', 'ah').
+> 2. Corrige la grammaire, l'orthographe et la syntaxe de manière invisible et naturelle.
+> 3. Ajoute la ponctuation de façon cohérente selon le ton employé.
+> 4. Préserve rigoureusement le sens initial, le vocabulaire métier et l'intention de l'utilisateur.
+> 5. **Règle absolue :** Ne réponds rien d'autre que le texte corrigé final. Pas de salutations, pas de commentaires, pas d'explications, pas de guillemets autour de la réponse."
+> 
+> 
+
+### F4 : Injection de Texte Intelligente (`text_injector.py`)
+
+Pour injecter le texte instantanément à l'emplacement du curseur actif sans latence, la méthode "Smart Paste" (Copier/Coller système simulé) est requise :
+
+1. Sauvegarder le contenu textuel actuellement présent dans le presse-papiers de l'utilisateur.
+2. Remplacer le contenu du presse-papiers par le texte nettoyé généré par le LLM.
+3. Simuler la combinaison de touches de collage standard du système d'exploitation (`Ctrl + V` sur Windows/Linux, `Cmd + V` sur macOS).
+4. Introduire un micro-délai (ex: 0.1s) pour laisser le système coller le texte.
+5. Restaurer immédiatement le contenu d'origine du presse-papiers pour ne pas perturber l'expérience de l'utilisateur.
+
+### F5 : Interface de Statut Visuel (`ui_overlay.py`)
+
+Étant donné que l'application s'exécute en tâche de fond, un retour visuel non intrusif est indispensable. Une mini-fenêtre flottante (Overlay) utilisant `Tkinter` s'affichera près du coin de l'écran ou suivra discrètement l'état :
+
+* `IDLE` (En attente) : Fenêtre invisible ou indicateur gris très discret.
+* `RECORDING` (Écoute active) : Une petite bulle rouge ou un indicateur "🎙️ Écoute...".
+* `PROCESSING` (Traitement IA) : Une bulle bleue ou un texte "⚙️ Traitement en cours...".
+* `SUCCESS` / `ERROR` : Un flash vert temporaire ou un message d'erreur rouge pendant 1.5 seconde avant de repasser en `IDLE`.
+
+---
+
+## 5. Configuration de l'Environnement (`.env`)
+
+Un fichier `.env` à la racine servira à piloter l'ensemble de l'application sans toucher au code source. Exemple type à générer :
+
+```env
+# ------------------------------------------------------------------------------
+# Configuration des Moteurs IA (Options supportées : openai, anthropic, ollama)
+# ------------------------------------------------------------------------------
+STT_PROVIDER=openai
+LLM_PROVIDER=openai
+
+# ------------------------------------------------------------------------------
+# Clés API pour les Services Cloud
+# ------------------------------------------------------------------------------
+OPENAI_API_KEY=sk-proj-PROD_DE_VOTRE_CLE_ICI
+ANTHROPIC_API_KEY=sk-ant-VOTRE_CLE_ICI
+
+# ------------------------------------------------------------------------------
+# Configuration des Modèles
+# ------------------------------------------------------------------------------
+OPENAI_LLM_MODEL=gpt-4o-mini
+ANTHROPIC_LLM_MODEL=claude-3-5-sonnet
+
+# ------------------------------------------------------------------------------
+# Configuration d'Ollama (Pour usage 100% local)
+# ------------------------------------------------------------------------------
+OLLAMA_HOST=http://localhost:11434
+OLLAMA_LLM_MODEL=llama3
+
+# ------------------------------------------------------------------------------
+# Paramètres Système & Raccourcis Clavier
+# ------------------------------------------------------------------------------
+# Syntaxe pynput : <ctrl>+<shift>+e, <ctrl>+<alt>+v, etc.
+GLOBAL_HOTKEY=<ctrl>+<shift>+e
+AUDIO_TEMP_FILE=temp_speech.wav
+
+```
+
+---
+
+## 6. Guide d'Exécution pas à pas pour Claude Code
+
+Pour implémenter ce projet de manière itérative et robuste dans VS Code avec Claude Code, suivez la feuille de route ci-dessous :
+
+### Étape 1 : Initialisation de l'Espace de Travail
+
+Créer le fichier `requirements.txt` et le fichier `.env` de configuration. Installer les dépendances dans un environnement virtuel Python (`venv`).
+
+### Étape 2 : Module d'Enregistrement Audio (`audio_recorder.py`)
+
+Développer la capture microphone. Tester de manière isolée via un script de test pour vérifier qu'un fichier `.wav` lisible et propre est correctement créé sur le disque.
+
+### Étape 3 : Écouteur de Raccourci Clavier Global (`main.py`)
+
+Mettre en place la boucle `pynput`. Lier le raccourci configuré dans le `.env` pour déclencher le début de l'enregistrement à l'étape 2, et l'arrêter lors du second appui.
+
+### Étape 4 : Pipeline d'Intelligence Artificielle (`ai_pipeline.py`)
+
+Implémenter la fonction de transcription (STT) et l'appel au LLM avec le prompt système. Valider la sortie textuelle nettoyée directement dans les logs de la console.
+
+### Étape 5 : Module d'Injection et Sauvegarde du Presse-papiers (`text_injector.py`)
+
+Écrire la logique "Smart Paste" pour simuler l'action de collage et valider le bon fonctionnement dans un bloc-notes ouvert à l'écran.
+
+### Étape 6 : Interface Graphique de Statut (`ui_overlay.py`)
+
+Créer l'interface graphique ultra-légère Tkinter pour connecter visuellement le cycle de vie de l'application (Écoute -> Traitement -> Succès).
+
+---
+
+*Fin du document PRD. Prêt pour l'analyse par Claude Code.*
+"""
+
+filename = "PRD_LocalFlow.md"
+with open(filename, "w", encoding="utf-8") as f:
+f.write(markdown_content)
+
+print(f"File {filename} written successfully.")
+
+```
+
+
+Vous pouvez récupérer le fichier généré ci-dessus sous le nom `PRD_LocalFlow.md`, le placer à la racine de votre dossier de projet dans VS Code, puis laisser **Claude Code** le lire pour exécuter le projet étape par étape. Tout y est configuré (architecture, prompts, script d'injection, `.env`) pour lui faciliter le travail.
+
+```

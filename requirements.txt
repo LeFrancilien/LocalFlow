@@ -1,0 +1,8 @@
+pynput
+sounddevice
+scipy
+pyperclip
+python-dotenv
+openai
+anthropic
+httpx

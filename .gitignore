@@ -1,0 +1,12 @@
+# Environnement virtuel
+venv/
+
+# Secrets et configuration locale
+.env
+
+# Caches Python
+__pycache__/
+*.py[cod]
+
+# Fichiers audio temporaires
+*.wav
