@@ -47,10 +47,7 @@ cd LocalFlow
 python -m venv venv
 .\venv\Scripts\activate
 pip install -r requirements.txt
-pip install faster-whisper
 ```
-
-`faster-whisper` is imported by `ai_pipeline.py` but is not listed in `requirements.txt` yet, so it is installed separately for now.
 
 Create a `.env` file at the project root if you want to change a default (all keys are optional):
 
@@ -85,7 +82,6 @@ The first dictation after start-up is slower because the Whisper model is loaded
 
 - Windows only. Text insertion relies on the clipboard and Ctrl+V.
 - Only the local providers are implemented: faster-whisper for speech-to-text and Ollama for the LLM. `STT_PROVIDER` and `LLM_PROVIDER` exist in `config.py`, but other values are not supported.
-- `requirements.txt` lists packages the current pipeline does not use (`openai`, `anthropic`) and misses `faster-whisper`.
 - No automated tests, no CI, no installer.
 
 ## Troubleshooting

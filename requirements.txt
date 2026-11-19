@@ -1,8 +1,8 @@
 pynput
 sounddevice
 scipy
+numpy
 pyperclip
 python-dotenv
-openai
-anthropic
 httpx
+faster-whisper
